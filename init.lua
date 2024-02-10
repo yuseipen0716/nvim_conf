@@ -336,6 +336,11 @@ vim.keymap.set({ 'n', 'v' }, '<Space>', '<Nop>', { silent = true })
 vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
+-- command line mode
+vim.keymap.set('c', 'tt', '<C-\\><C-N>:tabnew<CR>', { silent = true })
+vim.keymap.set('c', 'tm', '<C-\\><C-N>:term<CR>', { silent = true })
+
+-- insert mode
 vim.keymap.set('i', 'jj', '<Esc>', {noremap = true, silent = true})
 
 -- Diagnostic keymaps
