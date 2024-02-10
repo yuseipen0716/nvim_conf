@@ -608,6 +608,8 @@ local servers = {
       -- diagnostics = { disable = { 'missing-fields' } },
     },
   },
+  solargraph = {},
+  intelephense = {},
 }
 
 -- Setup neovim lua configuration
