@@ -241,7 +241,8 @@ require('lazy').setup({
   },
 
   -- "gc" to comment visual regions/lines
-  { 'numToStr/Comment.nvim', opts = {} },
+  -- Comment.nvimの設定は./lua/custom/plugins配下に移した。（jsx, tsx対応のため）
+  --{ 'numToStr/Comment.nvim', opts = {} },
 
   -- Fuzzy Finder (files, lsp, etc)
   {
