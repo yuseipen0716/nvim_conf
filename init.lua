@@ -707,5 +707,25 @@ cmp.setup {
   },
 }
 
+-- lspによって表示されている？エラーメッセージが見切れるので、virtual_textではなく、floatにする。
+vim.lsp.handlers['textDocument/publishDiagnostics'] = vim.lsp.with(
+  vim.lsp.diagnostic.on_publish_diagnostics, {
+    virtual_text = false,
+    signs = true,
+    underline = true,
+    update_in_insert = false,
+    float = {
+      source = "always",
+      border = "rounded",
+      width = 80
+    },
+  }
+)
+
+-- エラーが出ている部分にカーソルを合わせたら、floatが表示されるようにしてみる。
+vim.cmd([[
+  autocmd CursorHold * lua vim.diagnostic.open_float(nil, {focus=false})
+]])
+
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
