@@ -626,7 +626,7 @@ local servers = {
   },
   solargraph = {},
   intelephense = {},
-  tsserver = {},
+  ts_ls = {},
   eslint = {}
 }
 
