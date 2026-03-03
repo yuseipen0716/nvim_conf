@@ -629,6 +629,7 @@ local servers = {
   ts_ls = {},
   eslint = {},
   rust_analyzer = {},
+  biome = {},
 }
 
 -- Setup neovim lua configuration
@@ -652,6 +653,14 @@ mason_lspconfig.setup_handlers {
       on_attach = on_attach,
       settings = servers[server_name],
       filetypes = (servers[server_name] or {}).filetypes,
+    }
+  end,
+  -- biome.json が存在するプロジェクトのみで起動する
+  ['biome'] = function()
+    require('lspconfig').biome.setup {
+      capabilities = capabilities,
+      on_attach = on_attach,
+      root_dir = require('lspconfig.util').root_pattern('biome.json', 'biome.jsonc'),
     }
   end,
 }
