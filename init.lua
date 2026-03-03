@@ -627,7 +627,8 @@ local servers = {
   solargraph = {},
   intelephense = {},
   ts_ls = {},
-  eslint = {}
+  eslint = {},
+  rust_analyzer = {},
 }
 
 -- Setup neovim lua configuration
