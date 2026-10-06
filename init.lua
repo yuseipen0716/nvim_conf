@@ -667,6 +667,24 @@ mason_lspconfig.setup_handlers {
       root_dir = require('lspconfig.util').root_pattern('biome.json', 'biome.jsonc'),
     }
   end,
+  -- ESLint v9 は既定で flat config を使うため、.eslintrc のみのプロジェクトでは
+  -- "Could not find config file" になる。eslint.config.* が無ければ eslintrc 形式で動かす
+  ['eslint'] = function()
+    require('lspconfig').eslint.setup {
+      capabilities = capabilities,
+      on_attach = on_attach,
+      on_new_config = function(config, new_root_dir)
+        local has_flat_config = false
+        for _, ext in ipairs { 'js', 'mjs', 'cjs', 'ts', 'mts', 'cts' } do
+          if vim.fn.filereadable(new_root_dir .. '/eslint.config.' .. ext) == 1 then
+            has_flat_config = true
+            break
+          end
+        end
+        config.settings.useFlatConfig = has_flat_config
+      end,
+    }
+  end,
 }
 
 -- [[ Configure nvim-cmp ]]
