@@ -84,10 +84,13 @@ require('lazy').setup({
   {
     -- LSP Configuration & Plugins
     'neovim/nvim-lspconfig',
+    -- v2 系は require('lspconfig') の書き方に非推奨警告を出すため v1 系の最終版に固定（ts_ls に対応済み）
+    version = 'v1.8.0',
     dependencies = {
       -- Automatically install LSPs to stdpath for neovim
       { 'williamboman/mason.nvim', config = true },
-      'williamboman/mason-lspconfig.nvim',
+      -- v2 で setup_handlers が廃止されたため v1 系の最終版に固定（ts_ls に対応済み）
+      { 'williamboman/mason-lspconfig.nvim', version = 'v1.32.0' },
 
       -- Useful status updates for LSP
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
