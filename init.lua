@@ -272,8 +272,19 @@ require('lazy').setup({
   {
     -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    -- master は開発停止済みで Neovim 0.12 に非対応のため、書き直し版の main を使う
+    -- (パーサーのビルドに tree-sitter-cli が必要: brew install tree-sitter-cli)
+    branch = 'main',
+    lazy = false,
     dependencies = {
-      'nvim-treesitter/nvim-treesitter-textobjects',
+      {
+        'nvim-treesitter/nvim-treesitter-textobjects',
+        branch = 'main',
+        init = function()
+          -- 標準 ftplugin のキーマップ(]m など)と衝突しないようにする
+          vim.g.no_plugin_maps = true
+        end,
+      },
     },
     build = ':TSUpdate',
   },
@@ -459,80 +470,75 @@ vim.keymap.set('n', '<leader>sr', require('telescope.builtin').resume, { desc = 
 
 -- [[ Configure Treesitter ]]
 -- See `:help nvim-treesitter`
--- Defer Treesitter setup after first render to improve startup time of 'nvim {filename}'
-vim.defer_fn(function()
-  require('nvim-treesitter.configs').setup {
-    -- Add languages to be installed here that you want installed for treesitter
-    ensure_installed = { 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript', 'vimdoc', 'vim', 'bash', 'ruby', 'php' },
+-- パーサーのインストール（インストール済みなら何もしない・非同期）
+require('nvim-treesitter').install { 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript', 'vimdoc', 'vim', 'bash', 'ruby', 'php', 'markdown', 'markdown_inline' }
 
-    -- Autoinstall languages that are not installed. Defaults to false (but you can change for yourself!)
-    auto_install = false,
-    -- Install languages synchronously (only applied to `ensure_installed`)
-    sync_install = false,
-    -- List of parsers to ignore installing
-    ignore_install = {},
-    -- You can specify additional Treesitter modules here: -- For example: -- playground = {--enable = true,-- },
-    modules = {},
-    highlight = { enable = true },
-    indent = { enable = true },
-    incremental_selection = {
-      enable = true,
-      keymaps = {
-        init_selection = '<c-space>',
-        node_incremental = '<c-space>',
-        scope_incremental = '<c-s>',
-        node_decremental = '<M-space>',
-      },
-    },
-    textobjects = {
-      select = {
-        enable = true,
-        lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
-        keymaps = {
-          -- You can use the capture groups defined in textobjects.scm
-          ['aa'] = '@parameter.outer',
-          ['ia'] = '@parameter.inner',
-          ['af'] = '@function.outer',
-          ['if'] = '@function.inner',
-          ['ac'] = '@class.outer',
-          ['ic'] = '@class.inner',
-        },
-      },
-      move = {
-        enable = true,
-        set_jumps = true, -- whether to set jumps in the jumplist
-        goto_next_start = {
-          [']m'] = '@function.outer',
-          [']]'] = '@class.outer',
-        },
-        goto_next_end = {
-          [']M'] = '@function.outer',
-          [']['] = '@class.outer',
-        },
-        goto_previous_start = {
-          ['[m'] = '@function.outer',
-          ['[['] = '@class.outer',
-        },
-        goto_previous_end = {
-          ['[M'] = '@function.outer',
-          ['[]'] = '@class.outer',
-        },
-      },
-      swap = {
-        enable = true,
-        swap_next = {
-          ['<leader>a'] = '@parameter.inner',
-        },
-        swap_previous = {
-          ['<leader>A'] = '@parameter.inner',
-        },
-      },
-    },
-    endwise = {
-      enable = true,
-    },
-  }
-end, 0)
+-- パーサーがある filetype ではハイライトとインデントを有効にする
+vim.api.nvim_create_autocmd('FileType', {
+  group = vim.api.nvim_create_augroup('treesitter-setup', { clear = true }),
+  callback = function(args)
+    if not pcall(vim.treesitter.start, args.buf) then
+      return
+    end
+    local lang = vim.treesitter.language.get_lang(vim.bo[args.buf].filetype)
+    if lang and vim.treesitter.query.get(lang, 'indents') then
+      vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+    end
+  end,
+})
+
+-- 構文単位の選択範囲の拡大・縮小（Neovim 0.12 組み込みの an / in を使う）
+vim.keymap.set('n', '<C-space>', 'van', { remap = true, desc = 'Treesitter: start node selection' })
+vim.keymap.set('x', '<C-space>', 'an', { remap = true, desc = 'Treesitter: expand selection' })
+vim.keymap.set('x', '<M-space>', 'in', { remap = true, desc = 'Treesitter: shrink selection' })
+
+-- textobjects
+require('nvim-treesitter-textobjects').setup {
+  select = {
+    lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
+  },
+  move = {
+    set_jumps = true, -- whether to set jumps in the jumplist
+  },
+}
+
+do
+  local select = require 'nvim-treesitter-textobjects.select'
+  for lhs, capture in pairs {
+    ['aa'] = '@parameter.outer',
+    ['ia'] = '@parameter.inner',
+    ['af'] = '@function.outer',
+    ['if'] = '@function.inner',
+    ['ac'] = '@class.outer',
+    ['ic'] = '@class.inner',
+  } do
+    vim.keymap.set({ 'x', 'o' }, lhs, function()
+      select.select_textobject(capture, 'textobjects')
+    end, { desc = 'Select ' .. capture })
+  end
+
+  local move = require 'nvim-treesitter-textobjects.move'
+  for fn, maps in pairs {
+    goto_next_start = { [']m'] = '@function.outer', [']]'] = '@class.outer' },
+    goto_next_end = { [']M'] = '@function.outer', [']['] = '@class.outer' },
+    goto_previous_start = { ['[m'] = '@function.outer', ['[['] = '@class.outer' },
+    goto_previous_end = { ['[M'] = '@function.outer', ['[]'] = '@class.outer' },
+  } do
+    for lhs, capture in pairs(maps) do
+      vim.keymap.set({ 'n', 'x', 'o' }, lhs, function()
+        move[fn](capture, 'textobjects')
+      end, { desc = fn .. ' ' .. capture })
+    end
+  end
+
+  local swap = require 'nvim-treesitter-textobjects.swap'
+  vim.keymap.set('n', '<leader>a', function()
+    swap.swap_next '@parameter.inner'
+  end, { desc = 'Swap next parameter' })
+  vim.keymap.set('n', '<leader>A', function()
+    swap.swap_previous '@parameter.inner'
+  end, { desc = 'Swap previous parameter' })
+end
 
 -- [[ Configure LSP ]]
 --  This function gets run when an LSP connects to a particular buffer.
